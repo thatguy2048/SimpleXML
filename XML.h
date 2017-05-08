@@ -35,7 +35,9 @@ namespace XML{
 		Tag * parent;
 		std::string name;
 		
-		Object(Tag * Parent = NULL);
+		virtual ~Object(){}
+		
+		Object();
 		Object(const std::string& Name, Tag * Parent = NULL);
 		Object(const Object& other);
 		
@@ -53,7 +55,9 @@ namespace XML{
 	
 	//XML String 
 	struct String : public XML::Object{
-		String(Tag * Parent = NULL);
+		virtual ~String(){}
+		
+		String();
 		String(const std::string& Name, Tag * Parent = NULL);
 		String(const String& other);
 		
@@ -75,9 +79,9 @@ namespace XML{
 		//std::vector<Tag> children;
 		vec_type children;
 		
-		~Tag();
+		virtual ~Tag();
 		
-		Tag(Tag* Parent = NULL);
+		Tag();
 		Tag(const std::string& Name, Tag* Parent = NULL);
 		Tag(const Tag& other);
 		
@@ -93,6 +97,7 @@ namespace XML{
 		
 		//If the first child is a string, return it, otherwise push a string to the front of the child list and return that.
 		std::string& firstText();
+		const std::string& firstText() const;
 		
 		//destroy the children
 		void clearChildren();
@@ -116,6 +121,9 @@ namespace XML{
 		std::vector<String*> stringChildren();
 		const std::vector<String*> stringChildren() const;
 		
+		//copy the children of the other tag to this one
+		void addChildrenFromTag(XML::Tag* other);
+		
 		//Return a map of the child tags with the key being their name.
 		//Only returns the first instance of children with the same name.
 		const std::map<std::string, Tag*> childrenToMap() const;
@@ -137,6 +145,9 @@ namespace XML{
 		
 		friend std::istream& operator>>(std::istream& is, Tag& output);
 	};
+	
+	//Tag Functions
+	Tag* ChildWithName(Tag* tag, const std::string& childName);
 	
 	//Struct to store XML Document information.
 	struct Document{

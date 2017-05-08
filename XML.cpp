@@ -112,7 +112,7 @@ namespace XML{
 	
 //-----------------------------------OBJECT-----------------------------------------------//
 
-	Object::Object(Tag * Parent):parent(Parent), type(XML_OBJECT){}
+	Object::Object():parent(NULL), type(XML_OBJECT){}
 	Object::Object(const std::string& Name, Tag * Parent):name(Name), parent(Parent), type(XML_OBJECT){}
 	Object::Object(const Object& other):name(other.name), parent(other.parent), type(other.type){}
 	
@@ -130,9 +130,7 @@ namespace XML{
 
 //-----------------------------------STRING-----------------------------------------------//
 	
-	String::String(Tag * Parent):XML::Object(Parent){
-		type = XML_STRING;
-	}
+	String::String():XML::Object(){}
 	String::String(const std::string& Name, Tag * Parent):XML::Object(Name,Parent){
 		type = XML_STRING;
 	}
@@ -164,7 +162,7 @@ namespace XML{
 		}
 	}
 	
-	Tag::Tag(Tag* Parent):XML::Object(Parent), deleteChildTagsOnDestruction(true){
+	Tag::Tag():XML::Object(), deleteChildTagsOnDestruction(true){
 		type = XML_TAG;
 	}
 	
@@ -190,10 +188,11 @@ namespace XML{
 		if(obj->getType() == XML_STRING && children.size() > 0 && children.back()->getType() == XML_STRING){
 			children.back()->name += obj->name;
 			delete obj;
+			obj = children.back();
 		}else{
 			children.push_back(obj);
 		}
-		return obj;
+		return obj;                
 	}
 	
 	String* Tag::addChildString(const std::string& value){
@@ -218,6 +217,10 @@ namespace XML{
 		}
 	}
 	
+	const std::string& Tag::firstText() const{
+		return children[0]->name;
+	}
+	
 	void Tag::clearChildren(){
 		if(deleteChildTagsOnDestruction){
 			unsigned int i = children.size();
@@ -238,16 +241,16 @@ namespace XML{
 	}
 	
 	Tag* Tag::childWithName(const std::string& childName){
+		return const_cast<Tag*>(static_cast<const Tag*>(this)->childWithName(childName));
+	}
+	
+	const Tag* Tag::childWithName(const std::string& childName) const{
 		for(unsigned int i = 0; i < children.size(); ++i){
 			if(children[i]->getType() == XML_TAG && children[i]->name == childName){
 				return (Tag*)children[i];
 			}
 		}
 		return NULL;
-	}
-	
-	const Tag* Tag::childWithName(const std::string& childName) const{
-		return childWithName(childName);
 	}
 	
 	Tag* Tag::lastChildWithName(const std::string& childName){
@@ -289,6 +292,12 @@ namespace XML{
 	}
 	const std::vector<String*> Tag::stringChildren() const{
 		return stringChildren();
+	}
+	
+	void Tag::addChildrenFromTag(XML::Tag* other){
+		for(unsigned int i = 0; i < other->children.size(); ++i){
+			addChild(XML::Copy(other->children[i]));
+		}
 	}
 	
 	const std::map<std::string, Tag*> Tag::childrenToMap() const{
@@ -471,7 +480,7 @@ namespace XML{
 			std::string tmp;
 			char c;
 			while(std::getline(is,tmp,'<')){
-				tag->addChildString(tmp);
+				tag->addChildString(DeEscapeString(tmp));
 				
 				//check if this is the end tag
 				if(is.get(c)){
@@ -479,7 +488,7 @@ namespace XML{
 						if(ReadEndTag(is,tag->name, tmp)){
 							break;
 						}else{
-							tag->addChildString(tmp);
+							tag->addChildString(DeEscapeString(tmp));
 						}
 					}else{ //this is the start of an inner tag.
 						Tag * newTag = Tag::FromStream(is,c);
@@ -604,7 +613,7 @@ namespace XML{
 	}
 	
 	Document Document::FromStream(std::istream& is){
-		return Document::FromStream(is,"root");
+		return Document::FromStream(is,"_root");
 	}
 	
 	std::ostream& operator<<(std::ostream& os, const XML::Document& doc){
